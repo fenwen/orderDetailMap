@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>warehouse</title>
+    <style>
+      html,body{
+        height: 100%;
+        width: 100%;
+        margin:auto;
+        background-color:#000 !important;
+        display: -webkit-flex;
+        flex-direction: column;
+        justify-content:center;
+      }
+    </style>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=3.0&ak=ZUMPHAh0jZuKNnVDMCx203aB5TWrGGSl"></script>
+    <script type=text/javascript src=static/trackMap/js/LuShu_min.js></script>
+    <link rel="stylesheet" href="./static/reset.min.css">
+    <script>
+      (function () {
+        let computed = function () {
+          let desW = 1920,
+            devW = document.documentElement.clientWidth;
+          if (devW >= 1920) {
+            document.documentElement.style.fontSize = '100px';
+            return;
+          }
+          if(devW<=1440){
+            document.documentElement.style.fontSize = '75px';
+            return;
+          }
+          document.documentElement.style.fontSize = devW / desW * 100 + 'px';
+        };
+        computed();
+        window.addEventListener('resize', computed, false);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+</html>
