@@ -23,7 +23,7 @@
             <div class="map_item item_dot">
               <ol class="dot_list" v-if="nodeList.length > 0" >
                 <li v-for="(item, index) in nodeList" :key="index">
-                  <span>{{item.finishDate}}</span>
+                  <span>{{parseTime(item.finishDate, '{y}-{m}-{d} {h}:{i}:{s}')}}</span>
                   <div class="dot_c clearfix">
 							      <p>{{item.name}}</p>
 							      <span class="name">{{item.creator}}</span>
@@ -399,7 +399,7 @@ export default {
               }).then(res => {
                 if(res.data.success){
                   const data = JSON.parse(res.data.data.responseBody)
-                  var route = data.routeList[0].point
+                  var route = data.routeList.length > 0 ? data.routeList[0].point : []
                   var len = route.length;
                   var arr = [], arrLine = [];
                   this.locationList = route
@@ -517,6 +517,37 @@ export default {
           // console.log('订单明细', result)
         }
       })
+    },
+    parseTime(time, cFormat) {
+      if (arguments.length === 0) {
+        return null
+      }
+      const format = cFormat || '{y}-{m}-{d} {h}:{i}:{s}'
+      let date
+      if (typeof time === 'object') {
+        date = time
+      } else {
+        if (('' + time).length === 10) time = parseInt(time) * 1000
+        date = new Date(time)
+      }
+      const formatObj = {
+        y: date.getFullYear(),
+        m: date.getMonth() + 1,
+        d: date.getDate(),
+        h: date.getHours(),
+        i: date.getMinutes(),
+        s: date.getSeconds(),
+        a: date.getDay()
+      }
+      const time_str = format.replace(/{(y|m|d|h|i|s|a)+}/g, (result, key) => {
+        let value = formatObj[key]
+        if (key === 'a') return ['一', '二', '三', '四', '五', '六', '日'][value - 1]
+        if (result.length > 0 && value < 10) {
+          value = '0' + value
+        }
+        return value || 0
+      })
+      return time_str
     }
   }
 }
