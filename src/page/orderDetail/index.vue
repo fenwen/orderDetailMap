@@ -52,46 +52,48 @@
               <!-- <div class="m-style M-box"></div> -->
             </div>
             <!-- 详情 -->
-            <div class="map_item item_detail" style="display:none;" v-if="orderDetail.id">
-              <div class="map_item_row">
-                <span>所属公司：</span>
-                <p id ="company">{{orderDetail.company.name}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>货主：</span>
-                <p id ="seller">{{orderDetail.seller.name}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>订单号：</span>
-                <p id ="orderCode">{{orderDetail.code}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>客户单号：</span>
-                <p id ="customerCode">{{orderDetail.customerCode}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>订单日期：</span>
-                <p id ="orderDate">{{orderDetail.orderDate}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>订单类型：</span>
-                <p id ="orderType">{{orderType[orderDetail.type-0+1]}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>业务类型：</span>
-                <p id ="bizType">{{bizType[orderDetail.bizType-0+1]}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>发货仓库：</span>
-                <p id ="warehouse">{{orderDetail.warehouse.name}}</p>
-              </div>
-              <div class="map_item_row">
-                <span>收货人：</span>
-                <p id ="receiver">{{orderDetail.receiver.name}}</p>
+            <div class="map_item item_detail" style="display:none;" >
+              <div>
+                <div class="map_item_row">
+                  <span>所属公司：</span>
+                  <p id ="company">{{orderDetail.company.name}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>货主：</span>
+                  <p id ="seller">{{orderDetail.seller.name}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>订单号：</span>
+                  <p id ="orderCode">{{orderDetail.code}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>客户单号：</span>
+                  <p id ="customerCode">{{orderDetail.customerCode}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>订单日期：</span>
+                  <p id ="orderDate">{{orderDetail.orderDate}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>订单类型：</span>
+                  <p id ="orderType">{{orderType[orderDetail.type-0+1]}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>业务类型：</span>
+                  <p id ="bizType">{{bizType[orderDetail.bizType-0+1]}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>发货仓库：</span>
+                  <p id ="warehouse">{{orderDetail.warehouse.name}}</p>
+                </div>
+                <div class="map_item_row">
+                  <span>收货人：</span>
+                  <p id ="receiver">{{orderDetail.receiver.name}}</p>
+                </div>
               </div>
             </div>
             <!-- 明细 -->
-            <div class="map_item item_goods">
+            <div class="map_item item_goods" style="display:none;">
               <ol class="goods_list" v-if="goodList.length > 0" >
                 <li v-for="(item, index) in goodList" :key="index">
                   <div class="goods_row">
@@ -163,7 +165,17 @@ export default {
       nodeList: [], // 节点
       goodList: [], // 明细
       locationList: [], // 定位点
-      orderDetail: { id: '' }, // 订单详情
+      orderDetail: { // 订单详情
+        company: { name: '' },
+        seller: { name: '' },
+        code: '',
+        customerCode: '',
+        orderDate: '',
+        type: '',
+        bizType: '',
+        warehouse: { name: '' },
+        receiver: { name: '' }
+      },
       orderType: ['门店要货单', '前置仓调拨', '前置仓收货单', '总仓提货单', 'B2C订单', '自送包裹'],
       bizType: ['极速达', '半日达', '当日达', '次日达'],
       storageType: ['冷冻', '冷藏', '常温'],
@@ -230,11 +242,32 @@ export default {
       }).then(response => {
         if(response.data.success){
           var result = JSON.parse(response.data.data.data);
-          this.orderDetail = Object.assign({}, result)  //订单详情
+          this.orderDetail = Object.assign({}, this.orderDetail, result)  //订单详情
           // console.log('起始点', result)
 
-          // 门店
-          if(result.receiver.id){
+          // 门店  type=5 B2C类型 没有收货人
+          if(result.type == '5' && result.locationUnikey){
+            util(baseUrl, {
+              params: {
+                serviceName: 'com.vtradex.order.api.LocationApi',
+                method: 'getMMLocationByUnikey',
+                unikey: result.locationUnikey
+              }
+            }).then(resp => {
+              if(resp.data.success){
+                var res = JSON.parse(resp.data.data.data);
+                // console.log('store1', res)
+                var toPoint = new BMap.Point(res.longitude, res.latitude);
+                var toMarker = new BMap.Marker(toPoint, {icon: storeIcon});
+                var toLabel = new BMap.Label('<div class="ware_detal"><p>收货人：'+ result.contactName +'</p></div>', { offset: new BMap.Size(34,-10) });
+                map.addOverlay(toMarker);
+                pointArr.push(toPoint);
+                toLabel.setStyle(labelStyle);
+                toMarker.setLabel(toLabel);
+                wareHoverHandler(toMarker, toLabel)
+              }
+            })
+          }else if(result.receiver.id){
             util(baseUrl, {
               params: {
                 serviceName: 'com.vtradex.order.api.ReceiverApi',
@@ -344,96 +377,98 @@ export default {
         }
       }).then(response => {
         if(response.data.success){
-          var result = JSON.parse(response.data.data.data);
-          var trackNo = result.code +'.'+ result.gpsNo
-          // console.log('trackNo', result)
-          if(!!result.gpsNo){
-            const content = {
-              trackNo: trackNo,
-              startTime: '2000-01-01 12:12:12',
-              endTime: '2099-09-09 09:09:09',
-              pointCount: '9999'
-            }
-
-            util(baseUrl, {
-              params: {
-                serviceName: 'com.vtradex.ehub.lbs.api.LbsService',
-                method: 'queryTrack',
-                orgKey: orgCode,
-                content: JSON.stringify(content)
+          var result = !!response.data.data.data ? JSON.parse(response.data.data.data) : '';
+            if(result){
+            var trackNo = result.code +'.'+ result.gpsNo
+            // console.log('trackNo', result)
+            if(!!result.gpsNo){
+              const content = {
+                trackNo: trackNo,
+                startTime: '2000-01-01 12:12:12',
+                endTime: '2099-09-09 09:09:09',
+                pointCount: '9999'
               }
-            }).then(res => {
-              if(res.data.success){
-                const data = JSON.parse(res.data.data.responseBody)
-                var route = data.routeList[0].point
-                var len = route.length;
-                var arr = [], arrLine = [];
-                this.locationList = route
-                // console.log('轨迹', route)
 
-                if(len > 0){
-                  this.controlX = true
-                  for(var i=len-1; i>=0; i--){
-                    var item = route[i]
-                    arr.push({lat: item.latitude, lng: item.longitude})
-                    arrLine.push(new BMap.Point(item.longitude, item.latitude))
+              util(baseUrl, {
+                params: {
+                  serviceName: 'com.vtradex.ehub.lbs.api.LbsService',
+                  method: 'queryTrack',
+                  orgKey: orgCode,
+                  content: JSON.stringify(content)
+                }
+              }).then(res => {
+                if(res.data.success){
+                  const data = JSON.parse(res.data.data.responseBody)
+                  var route = data.routeList[0].point
+                  var len = route.length;
+                  var arr = [], arrLine = [];
+                  this.locationList = route
+                  // console.log('轨迹', route)
 
-                    // 起点
-                    if(i == len-1){
-                      var firstPoint = new BMap.Point(item.longitude, item.latitude)
-                      var firstMarker = new BMap.Marker(firstPoint);
-                      firstMarker.setAnimation(BMAP_ANIMATION_BOUNCE);
-                      map.addOverlay(firstMarker);
-                    }
-                  }
+                  if(len > 0){
+                    this.controlX = true
+                    for(var i=len-1; i>=0; i--){
+                      var item = route[i]
+                      arr.push({lat: item.latitude, lng: item.longitude})
+                      arrLine.push(new BMap.Point(item.longitude, item.latitude))
 
-                  map.panTo(new BMap.Point(route[len-1].longitude,route[len-1].latitude));
-                  var lushu;
-                  var drv = new BMap.DrivingRoute('上海', {
-                    onSearchComplete: function(res) {
-                      if (drv.getStatus() == BMAP_STATUS_SUCCESS) {
-                        map.addOverlay(new BMap.Polyline(arrLine, {strokeColor: '#3f971d'}));
-                        map.setViewport(arrLine);
-                        
-                        lushu = new BMapLib.LuShu(map, arr, {
-                          autoView: true,
-                          speed: 4500,
-                          icon: drvIcon,
-                          landmarkPois: [
-                            {lng: 116.314782, lat: 39.913508, html: '加油站', pauseTime: 2}
-                          ]
-                        });     
+                      // 起点
+                      if(i == len-1){
+                        var firstPoint = new BMap.Point(item.longitude, item.latitude)
+                        var firstMarker = new BMap.Marker(firstPoint);
+                        firstMarker.setAnimation(BMAP_ANIMATION_BOUNCE);
+                        map.addOverlay(firstMarker);
                       }
                     }
-                  });
-                  this.drv = drv
-                  this.lushu = lushu  
-      
-                  var fromPoint = new BMap.Point(route[0].longitude, route[0].latitude);
-                  var toPoint = new BMap.Point(route[len-1].longitude, route[len-1].latitude);
-                  drv.search(fromPoint, toPoint);
 
-                  //绑定事件
-                  $('#run').off('click').on('click', function(){
-                    lushu.start();
-                  })
+                    map.panTo(new BMap.Point(route[len-1].longitude,route[len-1].latitude));
+                    var lushu;
+                    var drv = new BMap.DrivingRoute('上海', {
+                      onSearchComplete: function(res) {
+                        if (drv.getStatus() == BMAP_STATUS_SUCCESS) {
+                          map.addOverlay(new BMap.Polyline(arrLine, {strokeColor: '#3f971d'}));
+                          map.setViewport(arrLine);
+                          
+                          lushu = new BMapLib.LuShu(map, arr, {
+                            autoView: true,
+                            speed: 4500,
+                            icon: drvIcon,
+                            landmarkPois: [
+                              {lng: 116.314782, lat: 39.913508, html: '加油站', pauseTime: 2}
+                            ]
+                          });     
+                        }
+                      }
+                    });
+                    this.drv = drv
+                    this.lushu = lushu  
+        
+                    var fromPoint = new BMap.Point(route[0].longitude, route[0].latitude);
+                    var toPoint = new BMap.Point(route[len-1].longitude, route[len-1].latitude);
+                    drv.search(fromPoint, toPoint);
 
-                  $('#stop').off('click').on('click', function(){
-                    lushu.stop();
-                  })
-                  $('#pause').off('click').on('click', function(){
-                    lushu.pause();
-                  })
+                    //绑定事件
+                    $('#run').off('click').on('click', function(){
+                      lushu.start();
+                    })
+
+                    $('#stop').off('click').on('click', function(){
+                      lushu.stop();
+                    })
+                    $('#pause').off('click').on('click', function(){
+                      lushu.pause();
+                    })
+                  }
+                }else{
+                  this.controlX = false
+                  alert(res.data.message)
+                  // this.$message({
+                  //   message: result.message,
+                  //   type: 'error'
+                  // });
                 }
-              }else{
-                this.controlX = false
-                alert(res.data.message)
-                // this.$message({
-                //   message: result.message,
-                //   type: 'error'
-                // });
-              }
-            })
+              })
+            }
           }
         }else{
           alert(res.data.message)
