@@ -76,11 +76,11 @@
                 </div>
                 <div class="map_item_row">
                   <span>订单类型：</span>
-                  <p id ="orderType">{{orderType[orderDetail.type-0+1]}}</p>
+                  <p id ="orderType">{{orderType[orderDetail.type-1]}}</p>
                 </div>
                 <div class="map_item_row">
                   <span>业务类型：</span>
-                  <p id ="bizType">{{bizType[orderDetail.bizType-0+1]}}</p>
+                  <p id ="bizType">{{bizType[orderDetail.bizType-1]}}</p>
                 </div>
                 <div class="map_item_row">
                   <span>发货仓库：</span>
@@ -176,7 +176,7 @@ export default {
         warehouse: { name: '' },
         receiver: { name: '' }
       },
-      orderType: ['门店要货单', '前置仓调拨', '前置仓收货单', '总仓提货单', 'B2C订单', '自送包裹'],
+      orderType: ['门店要货单', '前置仓调拨', '前置仓收货单', '总仓提货单', 'B2C订单', '自送整包', '自送收货', '自提发货', '整包送货'],
       bizType: ['极速达', '半日达', '当日达', '次日达'],
       storageType: ['冷冻', '冷藏', '常温'],
       drv: {},
