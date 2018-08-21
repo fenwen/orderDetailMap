@@ -23,7 +23,10 @@
             <div class="map_item item_dot">
               <ol class="dot_list" v-if="nodeList.length > 0" >
                 <li v-for="(item, index) in nodeList" :key="index">
-                  <span>{{parseTime(item.finishDate, '{y}-{m}-{d} {h}:{i}:{s}')}}</span>
+                  <p>
+                    <span>{{parseTime(item.finishDate, '{y}-{m}-{d} {h}:{i}:{s}')}}</span>
+                    <img v-if="item.attachmentUnikey&&index=='0'" class="ico_picture" @click="checkPicture(item.attachmentUnikey)" src="static/trackMap/ico_picture.png">
+                  </p>
                   <div class="dot_c clearfix">
 							      <p>{{item.name}}</p>
 							      <span class="name">{{item.creator}}</span>
@@ -146,6 +149,33 @@
           <img src="static/trackMap/playericon_pause.png">
         </span>
       </div>
+
+      <!-- 查看图片 -->
+      <div v-if="isShowPicture" class="mask"></div>
+      <div v-if="isShowPicture" class="picture_content">
+        <div class="slideshow">
+          <ul>
+            <li v-for="(img, index) in imgArray" :class="imgActive == (index+1) ? 'active' : ''" :key="index">
+              <img class="img" :src='img'>
+            </li>
+          </ul>
+          <p class="page">{{imgActive}}/{{imgTotal}}</p>
+          <img v-if="imgActive>1" class="arrow pre" @click="--imgActive" src="static/trackMap/ico_lt.png">
+          <img v-if="imgActive<imgTotal" class="arrow next" @click="++imgActive" src="static/trackMap/ico_gt.png">
+        </div>
+
+        
+        <!-- <div class="bar">
+          <span v-for="(item, index) in imgArray" :class="{ 'active':index===mark }" :key="index"></span>
+        </div> -->
+
+        <!-- <div id="photos_cont">
+          <img layer-src="static/trackMap/ico_close.png" src="static/trackMap/ico_close.png">
+          <img layer-src="static/trackMap/icon_store.png" src="static/trackMap/icon_store.png">
+          <img layer-src="static/trackMap/icon_s.png" src="static/trackMap/icon_s.png">
+        </div> -->
+        <img class="close" @click="isShowPicture = false" src="static/trackMap/ico_close.png">
+      </div>
   </div>
 </template>
 
@@ -181,6 +211,10 @@ export default {
       storageType: ['冷冻', '冷藏', '常温'],
       drv: {},
       lushu: {},
+      imgArray: [],
+      imgActive: 1,
+      imgTotal: 0,
+      isShowPicture: false,
       controlX: false
     }
   },
@@ -483,6 +517,31 @@ export default {
       this.getGoods()
     },
     /**
+     * 查看图片
+     */
+    checkPicture(unikey){
+      util(baseUrl, {
+        params: {
+          serviceName: 'com.vtradex.utils.api.AttachmentApi',
+          method: 'getByUnikey',
+          unikey: unikey
+        }
+      }).then(response => {
+        if(response.data.success){
+          var result = JSON.parse(response.data.data.data);
+          this.isShowPicture = true
+          console.log(result)
+          this.imgArray = result.olinks
+          // this.imgArray.push(result.olinks[0])
+          // this.imgArray.push(result.olinks[1])
+          this.imgTotal = this.imgArray.length;
+        }else{
+          alert(response.data.message)
+        }
+      })
+
+    },
+    /**
      * 订单节点
      */
     getNode(){
@@ -496,6 +555,7 @@ export default {
         if(response.data.success){
           var result = JSON.parse(response.data.data.data);
           this.nodeList = result
+          // console.log('订单节点', this.nodeList)
         }
       })
     },
@@ -557,6 +617,23 @@ export default {
 .map_container, #allmap { position: relative; width: 100%; height: 100%; }
 .map_container * { margin: 0; padding: 0; font-size: 13px; }
 
+.map_container .mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 20; }
+/* .map_container .picture_content .img { position: absolute; top: 50%; left: 50%; max-width: 1000px; max-height: 500px; text-align: center; -webkit-transform: translate(-50%, -50%); -moz-transform: translate(-50%, -50%); transform: translate(-50%, -50%); z-index: 22; } */
+.map_container .picture_content { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 22; }
+.map_container .close { position: absolute; top: 20px; right: 20px; width: 28px; z-index: 22; cursor: pointer; }
+.map_container .close:hover { opacity: 0.8; }
+
+.slideshow { position: absolute; top: 50%; left: 50%; width: 1000px; height: 500px; margin: -250px 0 0 -500px; }
+.slideshow ul { position: relative; width: 100%; height: 100%; }
+.slideshow ul li { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
+.slideshow ul li.active { display: block; }
+.slideshow ul li .img { position: absolute; top: 50%; left: 50%; max-width: 1000px; max-height: 500px; -webkit-transform: translate(-50%, -50%); -moz-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
+.slideshow .pre { position: absolute; top: 240px; left: 10px; }
+.slideshow .next { position: absolute; top: 240px; right: 10px; }
+.slideshow .arrow { cursor: pointer; }
+.slideshow .arrow:hover { opacity: 0.8; }
+.slideshow .page { position: absolute; bottom: -30px; left: 0; right: 0; line-height: 30px; color: #fff; text-align: center; }
+
 .ware_detal { position: relative; width: 240px; padding: 4px 12px 10px; border-radius: 5px; background: rgba(0,0,0,0.6); }
 .ware_detal:before { content: ''; width:0; height:0; overflow:hidden; font-size: 0; line-height: 0; border-width: 8px; border-style: solid; border-color: transparent rgba(0,0,0,0.6) transparent transparent; position: absolute; top: 12px; left: -16px; }
 .ware_detal p { white-space: normal; line-height: 20px; margin-top: 6px; color: #fff; }
@@ -600,10 +677,11 @@ export default {
 .item_dot { padding: 20px 12px; }
 .dot_list { margin-left: 30px; padding-left: 20px; border-left: 1px solid #cfcfcd; }
 .dot_list li { position: relative; font-size: 13px; color: #666; line-height: 24px; padding-bottom: 16px; }
+.dot_list li .ico_picture { cursor: pointer; width: 16px; }
 .dot_list li:after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: #4e963b; position: absolute; top: 0; left: -26px; }
 .dot_list li .dot_c p { float: left; width: 140px; }
 .dot_list li .dot_c .name { float: right; width: 86px; text-align: right; }
-.dot_list li span { display: block; }
+/* .dot_list li span { display: block; } */
 .dot_list li .address { clear: both; margin-top: 6px; line-height: 20px; }
 /* .dot_list li .address { clear: both; padding-left: 20px; margin-top: 6px; line-height: 20px; background:url(static/trackMap/icon_mark.png) no-repeat; } */
 
